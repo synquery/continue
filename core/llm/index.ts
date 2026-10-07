@@ -66,6 +66,7 @@ import {
   toCompleteBody,
   toFimBody,
 } from "./openaiTypeConverters.js";
+import { ProxyTraceStreamNormalizer } from "./proxyTraceStreamNormalizer.js";
 import { applyToolOverrides } from "../tools/applyToolOverrides.js";
 
 export class LLMError extends Error {
@@ -1038,9 +1039,17 @@ export abstract class BaseLLM implements ILLM {
       { ...body, stream: true },
       signal,
     );
+    const traceNormalizer = new ProxyTraceStreamNormalizer();
     for await (const chunk of stream) {
       if (!this.lastRequestId && typeof (chunk as any).id === "string") {
         this.lastRequestId = (chunk as any).id;
+      }
+      const choice = (chunk as any).choices?.[0];
+      if (typeof choice?.delta?.content === "string") {
+        choice.delta.content = traceNormalizer.push(
+          choice.index,
+          choice.delta.content,
+        );
       }
       const chatChunk = fromChatCompletionChunk(chunk as any);
       if (chatChunk) {

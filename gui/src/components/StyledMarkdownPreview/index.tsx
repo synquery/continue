@@ -22,6 +22,7 @@ import FilenameLink from "./FilenameLink";
 import "./katex.css";
 import "./markdown.css";
 import MermaidBlock from "./MermaidBlock";
+import { ProxyToolCallBlock } from "./ProxyToolCallBlock";
 import { rehypeHighlightPlugin } from "./rehypeHighlightPlugin";
 import { SecureImageComponent } from "./SecureImageComponent";
 import { StepContainerPreToolbar } from "./StepContainerPreToolbar";
@@ -30,6 +31,11 @@ import { SyntaxHighlightedPre } from "./SyntaxHighlightedPre";
 import { isSymbolNotRif, matchCodeToSymbolOrFile } from "./utils";
 import { fixDoubleDollarNewLineLatex } from "./utils/fixDoubleDollarLatex";
 import { patchNestedMarkdown } from "./utils/patchNestedMarkdown";
+import {
+  collapseProxyToolTraces,
+  parseProxyToolPayload,
+  PROXY_TOOL_LANG,
+} from "./utils/proxyToolTrace";
 import { remarkTables } from "./utils/remarkTables";
 
 const StyledMarkdown = styled.div<{
@@ -298,6 +304,13 @@ const StyledMarkdownPreview = memo(function StyledMarkdownPreview(
           const relativeFilePath = preChildProps["data-relativefilepath"];
           const codeBlockContent = preChildProps["data-codeblockcontent"];
 
+          if (getLanguageFromClassName(className) === PROXY_TOOL_LANG) {
+            const payload = parseProxyToolPayload(codeBlockContent);
+            if (payload) {
+              return <ProxyToolCallBlock payload={payload} />;
+            }
+          }
+
           if (!props.isRenderingInStepContainer) {
             return <SyntaxHighlightedPre {...preProps} />;
           }
@@ -374,7 +387,9 @@ const StyledMarkdownPreview = memo(function StyledMarkdownPreview(
   useEffect(() => {
     setMarkdownSource(
       // some patches to source markdown are applied here:
-      fixDoubleDollarNewLineLatex(patchNestedMarkdown(props.source ?? "")),
+      fixDoubleDollarNewLineLatex(
+        patchNestedMarkdown(collapseProxyToolTraces(props.source ?? "")),
+      ),
     );
   }, [props.source, allSymbols]);
 
