@@ -29,6 +29,7 @@ import SymbolLink from "./SymbolLink";
 import { SyntaxHighlightedPre } from "./SyntaxHighlightedPre";
 import { isSymbolNotRif, matchCodeToSymbolOrFile } from "./utils";
 import { fixDoubleDollarNewLineLatex } from "./utils/fixDoubleDollarLatex";
+import { fixMidLineCodeFences } from "./utils/fixMidLineCodeFences";
 import { patchNestedMarkdown } from "./utils/patchNestedMarkdown";
 import { remarkTables } from "./utils/remarkTables";
 
@@ -374,7 +375,9 @@ const StyledMarkdownPreview = memo(function StyledMarkdownPreview(
   useEffect(() => {
     setMarkdownSource(
       // some patches to source markdown are applied here:
-      fixDoubleDollarNewLineLatex(patchNestedMarkdown(props.source ?? "")),
+      fixDoubleDollarNewLineLatex(
+        patchNestedMarkdown(fixMidLineCodeFences(props.source ?? "")),
+      ),
     );
   }, [props.source, allSymbols]);
 
